@@ -1,7 +1,19 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use warp::{Filter, Rejection, Reply};
+use thiserror::Error;
+use warp::{reject, Filter, Rejection, Reply};
+
+#[derive(Error, Debug)]
+enum Error {
+    #[error("Unable to acquire mutex lock")]
+    MutexError,
+
+    #[error("DB error")]
+    DbError,
+}
+
+impl reject::Reject for Error {}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Entry {
@@ -13,9 +25,10 @@ struct Entry {
 impl Entry {
     fn read_all(conn: &rusqlite::Connection) -> rusqlite::Result<Vec<Entry>> {
         let mut statement = conn.prepare("select id, created_at, name from entries;")?;
-        statement
+        let entries = statement
             .query_map([], |row| Entry::from_row(&row))?
-            .collect()
+            .collect();
+        entries
     }
 
     fn from_row(row: &rusqlite::Row) -> std::result::Result<Entry, rusqlite::Error> {
@@ -41,38 +54,36 @@ impl Entry {
 }
 
 fn handle_post(shared_conn: Arc<Mutex<rusqlite::Connection>>) -> Result<impl Reply, Rejection> {
-    let conn = shared_conn.lock().expect("Unable to lock mutex");
+    let conn = shared_conn
+        .lock()
+        .map_err(|_| reject::custom(Error::MutexError))?;
     conn.execute("insert into entries (name) values ('Nino');", ())
-        .expect("Unable to execute query");
+        .map_err(|_| reject::custom(Error::DbError))?;
     Ok("ok")
 }
 
 fn handle_list(shared_conn: Arc<Mutex<rusqlite::Connection>>) -> Result<impl Reply, Rejection> {
-    let conn = shared_conn.lock().expect("Unable to lock mutex");
-    if let Ok(entries) = Entry::read_all(&conn) {
-        return Ok(format!("{:?}", &entries));
-    }
-    Ok("ok".to_string())
+    let conn = shared_conn
+        .lock()
+        .map_err(|_| reject::custom(Error::MutexError))?;
+    let entries = Entry::read_all(&conn).map_err(|_| reject::custom(Error::DbError))?;
+    Ok(warp::reply::json(&entries))
 }
 
 #[tokio::main]
 async fn main() {
-    println!(
-        "{:?}",
-        NaiveDateTime::parse_from_str("2023-04-05 16:43", "%Y-%m-%d %H:%M")
-    );
-
     let conn = rusqlite::Connection::open("db.sql").expect("Unable to open DB");
     let shared_conn = Arc::new(Mutex::new(conn));
     let shared_data = warp::any().map(move || shared_conn.clone());
 
     let endpoints = {
-        warp::path!("post")
+        warp::path!("api" / "post")
+            .and(warp::post())
             .and(shared_data.clone())
             .and_then(|shared_conn| async move { handle_post(shared_conn) })
     }
     .or({
-        warp::path!("list")
+        warp::path!("api" / "list")
             .and(shared_data.clone())
             .and_then(|shared_conn| async move { handle_list(shared_conn) })
     });
