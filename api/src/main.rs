@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use warp::{reject, Filter, Rejection, Reply};
+use std::collections::HashMap;
 
 #[derive(Error, Debug)]
 enum Error {
@@ -53,7 +54,10 @@ impl Entry {
     }
 }
 
-fn handle_post(shared_conn: Arc<Mutex<rusqlite::Connection>>) -> Result<impl Reply, Rejection> {
+fn handle_post(shared_conn: Arc<Mutex<rusqlite::Connection>>, body: HashMap<String, String>) -> Result<impl Reply, Rejection> {
+    for (k, v) in &body {
+        println!("{}: {}", k, v);
+    }
     let conn = shared_conn
         .lock()
         .map_err(|_| reject::custom(Error::MutexError))?;
@@ -85,7 +89,8 @@ async fn main() {
         warp::path!("api" / "post")
             .and(warp::post())
             .and(shared_data.clone())
-            .and_then(|shared_conn| async move { handle_post(shared_conn) }).with(&cors)
+            .and(warp::body::json())
+            .and_then(|shared_conn, body| async move { handle_post(shared_conn, body) }).with(&cors)
     }
     .or({
         warp::path!("api" / "list")
