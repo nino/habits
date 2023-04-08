@@ -76,16 +76,21 @@ async fn main() {
     let shared_conn = Arc::new(Mutex::new(conn));
     let shared_data = warp::any().map(move || shared_conn.clone());
 
+ let cors = warp::cors()
+        .allow_any_origin() // or specify allowed origins with .allow_origin()
+        .allow_headers(vec!["Content-Type", "Authorization"])
+        .allow_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"]);
+
     let endpoints = {
         warp::path!("api" / "post")
             .and(warp::post())
             .and(shared_data.clone())
-            .and_then(|shared_conn| async move { handle_post(shared_conn) })
+            .and_then(|shared_conn| async move { handle_post(shared_conn) }).with(&cors)
     }
     .or({
         warp::path!("api" / "list")
             .and(shared_data.clone())
-            .and_then(|shared_conn| async move { handle_list(shared_conn) })
+            .and_then(|shared_conn| async move { handle_list(shared_conn) }).with(&cors)
     });
 
     warp::serve(endpoints).run(([127, 0, 0, 1], 3030)).await;
