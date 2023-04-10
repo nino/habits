@@ -55,18 +55,24 @@ impl Entry {
 }
 
 fn handle_post(shared_conn: Arc<Mutex<rusqlite::Connection>>, body: HashMap<String, String>) -> Result<impl Reply, Rejection> {
+    println!("Handle post!");
     for (k, v) in &body {
         println!("{}: {}", k, v);
     }
     let conn = shared_conn
         .lock()
         .map_err(|_| reject::custom(Error::MutexError))?;
-    conn.execute("insert into entries (name) values ('Nino');", ())
-        .map_err(|_| reject::custom(Error::DbError))?;
-    Ok("ok")
+    if let Some(name) = body.get("name") {
+        conn.execute("insert into entries (name) values (?);", (&name,))
+            .map_err(|_| reject::custom(Error::DbError))?;
+        Ok("ok")
+    } else {
+        Ok("no name")
+    }
 }
 
 fn handle_list(shared_conn: Arc<Mutex<rusqlite::Connection>>) -> Result<impl Reply, Rejection> {
+    println!("Handle list!");
     let conn = shared_conn
         .lock()
         .map_err(|_| reject::custom(Error::MutexError))?;
@@ -82,6 +88,8 @@ async fn main() {
 
  let cors = warp::cors()
         .allow_any_origin() // or specify allowed origins with .allow_origin()
+        .allow_origin("http://localhost:3000")
+        .allow_origin("http://0.0.0.0:3000")
         .allow_headers(vec!["Content-Type", "Authorization"])
         .allow_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"]);
 
@@ -90,13 +98,13 @@ async fn main() {
             .and(warp::post())
             .and(shared_data.clone())
             .and(warp::body::json())
-            .and_then(|shared_conn, body| async move { handle_post(shared_conn, body) }).with(&cors)
+            .and_then(|shared_conn, body| async move { handle_post(shared_conn, body) })
     }
     .or({
         warp::path!("api" / "list")
             .and(shared_data.clone())
-            .and_then(|shared_conn| async move { handle_list(shared_conn) }).with(&cors)
+            .and_then(|shared_conn| async move { handle_list(shared_conn) })
     });
 
-    warp::serve(endpoints).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(endpoints.with(cors)).run(([127, 0, 0, 1], 3030)).await;
 }
