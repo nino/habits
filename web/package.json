@@ -18,9 +18,11 @@
     "@solidjs/meta": "^0.28.2",
     "@solidjs/router": "^0.8.2",
     "@tanstack/solid-query": "^4.27.0",
+    "dayjs": "^1.11.7",
     "solid-js": "^1.7.2",
     "solid-start": "^0.2.26",
-    "undici": "^5.15.1"
+    "undici": "^5.15.1",
+    "zod": "^3.21.4"
   },
   "engines": {
     "node": ">=16"
