@@ -4,7 +4,8 @@ import {
   useQueryClient,
 } from "@tanstack/solid-query";
 import { createSignal, Match, Switch } from "solid-js";
-import { Button, Input } from "~/components";
+import { useSearchParams } from "solid-start";
+import { Button, Input, LoginForm } from "~/components";
 
 const fetchEntries = async () =>
   fetch("http://0.0.0.0:3030/api/list/", {
@@ -15,9 +16,8 @@ const fetchEntries = async () =>
     },
   }).then((r) => r.json());
 
-const NewEntryForm = () => {
+const NewEntryForm = (props: { user: string }) => {
   const queryClient = useQueryClient();
-  const [name, setName] = createSignal<string>("");
   const submission = createMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fetchEntries"] });
@@ -30,7 +30,7 @@ const NewEntryForm = () => {
         },
         mode: "cors",
         method: "POST",
-        body: JSON.stringify({ name: name() }),
+        body: JSON.stringify({ name: props.user }),
       }),
   });
 
@@ -41,8 +41,7 @@ const NewEntryForm = () => {
 
   return (
     <form class="w-64 mx-auto my-4 flex flex-col" onsubmit={handleSubmit}>
-      <Input name="name" label="User" value={name()} setValue={setName} />
-      <Button onClick={() => undefined}>Submit</Button>
+      <Button>I did it!</Button>
       <Switch>
         <Match when={submission.isLoading}>Submitting…</Match>
         <Match when={submission.isSuccess}>Submitted</Match>
@@ -53,14 +52,28 @@ const NewEntryForm = () => {
 
 export default function Home() {
   const query = createQuery(() => ["fetchEntries"], fetchEntries);
+  const [params, setParams] = useSearchParams<{ user: string }>();
 
   return (
-    <main class="text-center mx-auto text-gray-700 p-4">
-      <NewEntryForm />
+    <main class="container mx-auto text-gray-700 my-4">
       <Switch>
-        <Match when={query.isSuccess}>{JSON.stringify(query.data)}</Match>
-        <Match when={query.isError}>Error</Match>
-        <Match when={query.isLoading}>Loading…</Match>
+        <Match when={params.user}>
+          <h1 class="text-xl text-center">Hello {params.user}!</h1>
+          <NewEntryForm user={params.user} />
+          <Switch>
+            <Match when={query.isSuccess}>{JSON.stringify(query.data)}</Match>
+            <Match when={query.isError}>Error</Match>
+            <Match when={query.isLoading}>Loading…</Match>
+          </Switch>
+          <footer class="w-64 mx-auto my-4 flex">
+            <Button onClick={() => setParams({ user: undefined })}>
+              Log out
+            </Button>
+          </footer>
+        </Match>
+        <Match when={!params.user}>
+          <LoginForm onLogin={(user) => setParams({ user })} />
+        </Match>
       </Switch>
     </main>
   );

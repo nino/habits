@@ -1,9 +1,9 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use warp::{reject, Filter, Rejection, Reply};
-use std::collections::HashMap;
 
 #[derive(Error, Debug)]
 enum Error {
@@ -54,17 +54,17 @@ impl Entry {
     }
 }
 
-fn handle_post(shared_conn: Arc<Mutex<rusqlite::Connection>>, body: HashMap<String, String>) -> Result<impl Reply, Rejection> {
+fn handle_post(
+    shared_conn: Arc<Mutex<rusqlite::Connection>>,
+    body: HashMap<String, String>,
+) -> Result<impl Reply, Rejection> {
     println!("Handle post!");
-    for (k, v) in &body {
-        println!("{}: {}", k, v);
-    }
     let conn = shared_conn
         .lock()
         .map_err(|_| reject::custom(Error::MutexError))?;
     if let Some(name) = body.get("name") {
         conn.execute("insert into entries (name) values (?);", (&name,))
-            .map_err(|_| reject::custom(Error::DbError))?;
+        .map_err(|_| reject::custom(Error::DbError))?;
         Ok("ok")
     } else {
         Ok("no name")
@@ -86,7 +86,7 @@ async fn main() {
     let shared_conn = Arc::new(Mutex::new(conn));
     let shared_data = warp::any().map(move || shared_conn.clone());
 
- let cors = warp::cors()
+    let cors = warp::cors()
         .allow_any_origin() // or specify allowed origins with .allow_origin()
         .allow_origin("http://localhost:3000")
         .allow_origin("http://0.0.0.0:3000")
@@ -106,5 +106,7 @@ async fn main() {
             .and_then(|shared_conn| async move { handle_list(shared_conn) })
     });
 
-    warp::serve(endpoints.with(cors)).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(endpoints.with(cors))
+        .run(([127, 0, 0, 1], 3030))
+        .await;
 }

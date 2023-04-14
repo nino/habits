@@ -5,7 +5,7 @@ api_prod:
 	cd api && cargo run --release
 
 web_dev:
-	cd web && yarn dev
+	cd web && (yarn dev || yarn && yarn dev)
 
 web_prod:
-	cd web && yarn build && yarn start
+	cd web && (yarn build || yarn && yarn build) && yarn start
