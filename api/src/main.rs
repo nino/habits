@@ -64,7 +64,7 @@ fn handle_post(
         .map_err(|_| reject::custom(Error::MutexError))?;
     if let Some(name) = body.get("name") {
         conn.execute("insert into entries (name) values (?);", (&name,))
-        .map_err(|_| reject::custom(Error::DbError))?;
+            .map_err(|_| reject::custom(Error::DbError))?;
         Ok("ok")
     } else {
         Ok("no name")
@@ -88,8 +88,7 @@ async fn main() {
 
     let cors = warp::cors()
         .allow_any_origin() // or specify allowed origins with .allow_origin()
-        .allow_origin("http://localhost:3000")
-        .allow_origin("http://0.0.0.0:3000")
+        .allow_origin(env!("VITE_WEB_BASE_URL"))
         .allow_headers(vec!["Content-Type", "Authorization"])
         .allow_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"]);
 

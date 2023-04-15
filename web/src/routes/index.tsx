@@ -3,12 +3,14 @@ import {
   createQuery,
   useQueryClient,
 } from "@tanstack/solid-query";
-import { createSignal, Match, Switch } from "solid-js";
+import { Match, Switch } from "solid-js";
 import { useSearchParams } from "solid-start";
-import { Button, Input, LoginForm } from "~/components";
+import { Button, LoginForm } from "~/components";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const fetchEntries = async () =>
-  fetch("http://0.0.0.0:3030/api/list/", {
+  fetch(`${API_BASE_URL}/list/`, {
     mode: "cors",
     headers: {
       Accept: "application/json",
@@ -23,7 +25,7 @@ const NewEntryForm = (props: { user: string }) => {
       queryClient.invalidateQueries({ queryKey: ["fetchEntries"] });
     },
     mutationFn: () =>
-      fetch("http://0.0.0.0:3030/api/post", {
+      fetch(`${API_BASE_URL}/post`, {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
