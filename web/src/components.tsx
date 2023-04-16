@@ -55,7 +55,7 @@ export const EntryList = (props: { entries: Entry[]; user: string }) => {
   );
   return (
     <ul>
-      <For each={myEntries()} fallback={<div>wtf</div>}>
+      <For each={myEntries()} fallback={<div>No entries yet.</div>}>
         {(entry: Entry) => (
           <li>
             {entry.created_at.format()}
