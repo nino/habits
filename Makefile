@@ -9,3 +9,6 @@ web_dev:
 
 web_prod:
 	cd web && yarn && yarn build && yarn start
+
+prod:
+	mprocs 'make web_prod' 'make api_prod'
