@@ -1,4 +1,5 @@
-import { createSignal, JSX } from "solid-js";
+import { createMemo, createSignal, For, JSX } from "solid-js";
+import { Entry } from "./Entry";
 
 type InputProps = {
   name: string;
@@ -37,10 +38,30 @@ export const LoginForm = (props: { onLogin: (user: string) => void }) => {
   return (
     <form
       class="w-64 mx-auto my-4 flex flex-col"
-      onsubmit={() => props.onLogin(user())}
+      onsubmit={(event) => {
+        event.preventDefault();
+        props.onLogin(user());
+      }}
     >
       <Input value={user()} setValue={setUser} name="user" label="Username" />
       <Button>Log in</Button>
     </form>
+  );
+};
+
+export const EntryList = (props: { entries: Entry[]; user: string }) => {
+  const myEntries = createMemo(() =>
+    props.entries.filter((entry) => entry.name === props.user),
+  );
+  return (
+    <ul>
+      <For each={myEntries()} fallback={<div>wtf</div>}>
+        {(entry: Entry) => (
+          <li>
+            {entry.created_at.format()}
+          </li>
+        )}
+      </For>
+    </ul>
   );
 };

@@ -5,18 +5,22 @@ import {
 } from "@tanstack/solid-query";
 import { Match, Switch } from "solid-js";
 import { useSearchParams } from "solid-start";
-import { Button, LoginForm } from "~/components";
+import { Button, EntryList, LoginForm } from "~/components";
+import { Entry } from "~/Entry";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const fetchEntries = async () =>
-  fetch(`${API_BASE_URL}/list/`, {
+const fetchEntries = async (): Promise<Entry[]> => {
+  const response = await fetch(`${API_BASE_URL}/list/`, {
     mode: "cors",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
   }).then((r) => r.json());
+  const parsed = response.map(Entry.parse);
+  return parsed;
+};
 
 const NewEntryForm = (props: { user: string }) => {
   const queryClient = useQueryClient();
@@ -24,8 +28,8 @@ const NewEntryForm = (props: { user: string }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fetchEntries"] });
     },
-    mutationFn: () =>
-      fetch(`${API_BASE_URL}/post`, {
+    mutationFn: async () =>
+      await fetch(`${API_BASE_URL}/post`, {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -61,9 +65,11 @@ export default function Home() {
       <Switch>
         <Match when={params.user}>
           <h1 class="text-xl text-center">Hello {params.user}!</h1>
-          <NewEntryForm user={params.user} />
+          <NewEntryForm user={params.user ?? ""} />
           <Switch>
-            <Match when={query.isSuccess}>{JSON.stringify(query.data)}</Match>
+            <Match when={query.isSuccess}>
+              <EntryList entries={query.data ?? []} user={params.user ?? ""} />
+            </Match>
             <Match when={query.isError}>Error</Match>
             <Match when={query.isLoading}>Loading…</Match>
           </Switch>

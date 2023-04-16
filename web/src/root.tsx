@@ -14,7 +14,16 @@ import {
 } from "solid-start";
 import "./root.css";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      retryOnMount: false,
+    },
+  },
+});
 
 export default function Root() {
   return (
