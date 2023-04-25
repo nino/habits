@@ -6,7 +6,7 @@ import {
 import { Match, Switch } from "solid-js";
 import { useSearchParams } from "solid-start";
 import { Button, EntryList, LoginForm } from "~/components";
-import { Entry } from "~/Entry";
+import { Entry, EntrySchema } from "~/Entry";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -18,7 +18,7 @@ const fetchEntries = async (): Promise<Entry[]> => {
             "Content-Type": "application/json",
         },
     }).then((r) => r.json());
-    const parsed = response.map(Entry.parse);
+    const parsed = response.map(EntrySchema.parse);
     return parsed;
 };
 
