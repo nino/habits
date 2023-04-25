@@ -10,5 +10,8 @@ web_dev:
 web_prod:
 	cd web && yarn && yarn build && yarn start
 
+dev:
+	mprocs 'make web_dev' 'make api_dev'
+
 prod:
 	mprocs 'make web_prod' 'make api_prod'
