@@ -80,6 +80,19 @@ fn handle_list(shared_conn: Arc<Mutex<rusqlite::Connection>>) -> Result<impl Rep
     Ok(warp::reply::json(&entries))
 }
 
+fn handle_delete(
+    shared_conn: Arc<Mutex<rusqlite::Connection>>,
+    id: i32,
+) -> Result<impl Reply, Rejection> {
+    println!("Handle list!");
+    let conn = shared_conn
+        .lock()
+        .map_err(|_| reject::custom(Error::MutexError))?;
+    conn.execute("delete from entries where id = ?", (&id,))
+        .map_err(|_| reject::custom(Error::DbError))?;
+    Ok("ok")
+}
+
 #[tokio::main]
 async fn main() {
     let conn = rusqlite::Connection::open("db.sql").expect("Unable to open DB");
@@ -103,6 +116,12 @@ async fn main() {
         warp::path!("api" / "list")
             .and(shared_data.clone())
             .and_then(|shared_conn| async move { handle_list(shared_conn) })
+    })
+    .or({
+        warp::path!("api" / "entry" / i32)
+            .and(warp::delete())
+            .and(shared_data.clone())
+            .and_then(|id, shared_conn| async move { handle_delete(shared_conn, id) })
     });
 
     warp::serve(endpoints.with(cors))
