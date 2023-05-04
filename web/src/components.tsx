@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, JSX } from "solid-js";
+import { createMemo, createSignal, For, JSX, Switch, Match } from "solid-js";
 import { Entry } from "./Entry";
 
 type InputProps = {
@@ -26,13 +26,17 @@ export const Button = (props: {
 }) => (
     <button
         class="bg-teal-200 m-1 rounded py-0.5 px-3 active:translate-y-1 w-full"
-        onClick={props.onClick}
+        onClick={() => props.onClick?.()}
     >
         {props.children}
     </button>
 );
 
-export const LoginForm = (props: { onLogin: (user: string) => void }) => {
+type LoginFormProps = {
+    onLogin: (user: string) => void;
+};
+
+export const LoginForm = (props: LoginFormProps) => {
     const [user, setUser] = createSignal<string>("");
 
     return (
@@ -45,7 +49,7 @@ export const LoginForm = (props: { onLogin: (user: string) => void }) => {
         >
             <Input
                 value={user()}
-                setValue={setUser}
+                setValue={(user) => setUser(user)}
                 name="user"
                 label="Username"
             />
@@ -54,14 +58,44 @@ export const LoginForm = (props: { onLogin: (user: string) => void }) => {
     );
 };
 
+function DeleteButton(props: { onDelete: () => void }): JSX.Element {
+    const [isConfirming, setIsConfirming] = createSignal(false);
+    return (
+        <>
+            <Switch>
+                <Match when={!isConfirming()}>
+                    <Button onClick={() => setIsConfirming(true)}>
+                        Delete
+                    </Button>
+                </Match>
+                <Match when={isConfirming()}>
+                    <Button>Really?</Button>
+                    <Button onClick={() => setIsConfirming(false)}>
+                        Cancel
+                    </Button>
+                </Match>
+            </Switch>
+        </>
+    );
+}
+
 export const EntryList = (props: { entries: Entry[]; user: string }) => {
     const myEntries = createMemo(() =>
         props.entries.filter((entry) => entry.name === props.user)
     );
     return (
-        <ul>
+        <ul class="list-disc list-inside">
             <For each={myEntries()} fallback={<div>No entries yet.</div>}>
-                {(entry: Entry) => <li>{entry.created_at.format()}</li>}
+                {(entry: Entry) => (
+                    <li>
+                        <div class="inline-flex">
+                            <div class="flex">{entry.created_at.format()}</div>
+                            <div>
+                                <DeleteButton onDelete={() => undefined} />
+                            </div>
+                        </div>
+                    </li>
+                )}
             </For>
         </ul>
     );
